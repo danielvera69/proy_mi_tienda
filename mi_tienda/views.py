@@ -46,3 +46,4 @@ def home(request):
     }
     print("metodo que viaja=",request.method)
     return render(request, "home.html", contexto)      # Junta home.html + contexto y responde
+
