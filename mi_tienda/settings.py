@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'mi_tienda.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'inventario.sqlite3',
+        'NAME': BASE_DIR / 'venta_compra.sqlite3',
     }
 }
 
@@ -118,6 +118,10 @@ USE_TZ = True
 STATIC_URL = "static/"                     # Ya existe: la dirección web de los archivos estáticos
 STATICFILES_DIRS = [BASE_DIR / "static"]   # ← AGREGA: la carpeta donde guardas tus CSS, JS e imágenes
 
+MEDIA_URL = "media/"                               # dirección web de los archivos que SUBEN los usuarios
+MEDIA_ROOT = BASE_DIR / "media"                    # carpeta donde se guardan (fotos de productos, logos)
+
+LOGIN_URL = "login"                                # a dónde envía LoginRequiredMixin a quien no tiene sesión
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
