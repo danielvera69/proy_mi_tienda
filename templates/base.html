@@ -20,7 +20,7 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Inicio</a></li>
                     {% if user.is_authenticated %}
                         {# Unidad 4 y 5: descomenta cada enlace cuando exista su URL #}
-                        {# <li class="nav-item"><a class="nav-link" href="{% url 'facturacion:producto_lista' %}">Productos</a></li> #}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'facturacion:producto_lista' %}">Productos</a></li> 
                         {# <li class="nav-item"><a class="nav-link" href="{% url 'facturacion:venta_lista' %}">Ventas</a></li> #}
                         {# TAREA: Marcas, Categorías, Clientes, Proveedores y Compras #}
                     {% endif %}

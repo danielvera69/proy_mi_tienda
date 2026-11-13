@@ -1,9 +1,14 @@
-from django.contrib import messages                        # Para mostrar mensajes de éxito o error
-from django.db.models import ProtectedError                # Error que sale al borrar una marca con productos
-from django.shortcuts import render, redirect, get_object_or_404   # render: mostrar página; redirect: ir a otra; get_object_or_404: buscar o mostrar 404
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin      # exige sesión
+from django.contrib.messages.views import SuccessMessageMixin  # mensaje de éxito automático
+from django.db.models import ProtectedError
+from django.shortcuts import redirect,render, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView   # las 5 genéricas
 
-from .forms import MarcaForm                               # Nuestro formulario
-from .models import Marca                                  # Nuestro modelo
+from .forms import MarcaForm, ProductoForm
+from .mixins import UsuarioRegistroMixin
+from .models import Marca, Producto                               # Nuestro modelo
 
 
 # =====================================================================
@@ -83,3 +88,10 @@ def marca_eliminar(request, pk):                           # DELETE
     # Si llegó por GET: mostramos la pregunta "¿Seguro?"
     contexto = {"titulo": "Eliminar marca", "marca": marca}
     return render(request, "facturacion/marca_eliminar.html", contexto)
+
+class ProductoListView(LoginRequiredMixin, ListView):     # LISTAR
+    model = Producto                                       # ¿qué tabla?
+    template_name = "facturacion/producto_lista.html"      # ¿qué HTML?
+    context_object_name = "productos"                      # nombre de la lista en el HTML
+    paginate_by = 5                                        # 5 por página → envía page_obj
+    extra_context = {"titulo": "Productos"}                # datos fijos extra para el HTML

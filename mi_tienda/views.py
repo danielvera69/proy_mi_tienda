@@ -1,10 +1,15 @@
-from django.http import HttpResponse, JsonResponse   # Importamos dos tipos de respuesta
-from django.contrib import messages
+from django.contrib import messages                                  # mensajes
 from django.contrib.auth import login, logout                      # abrir y cerrar sesión
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.db.models import Sum                                   # SUM() de SQL
 from django.shortcuts import render, redirect
-from django.utils.http import url_has_allowed_host_and_scheme      # revisa que "next" sea de nuestro sitio
-from django.views.decorators.http import require_POST              # solo deja pasar POST
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView                      # NUEVO: VBC que muestra un template
+
+from facturacion.models import Producto, Venta                     # NUEVO: para los números del inicio
+
 
 
 # ---------------------------------------------------------------
@@ -51,6 +56,22 @@ def home(request):
     }
     print("metodo que viaja=",request.method)
     return render(request, "home.html", contexto)      # Junta home.html + contexto y responde
+
+# =====================================================================
+# INICIO · tu primera Vista Basada en Clases
+# =====================================================================
+class InicioView(TemplateView):                    # TemplateView: "muestra un template con datos"
+    template_name = "home.html"                    # ATRIBUTO: ¿qué HTML?
+
+    def get_context_data(self, **kwargs):          # MÉTODO: ¿qué datos recibe el HTML?
+        contexto = super().get_context_data(**kwargs)   # 1. lo que TemplateView ya prepara
+        hoy = timezone.localdate()                      # 2. la fecha de hoy en Ecuador
+        ventas_hoy = Venta.objects.filter(fecha_hora__date=hoy)
+        contexto["total_productos"] = Producto.objects.filter(activo=True).count()
+        contexto["ventas_hoy"] = ventas_hoy.count()
+        contexto["vendido_hoy"] = ventas_hoy.aggregate(suma=Sum("total"))["suma"] or 0   # SUM(total)
+        contexto["stock_bajo"] = Producto.objects.filter(activo=True, stock__lt=5)        # menos de 5 unidades
+        return contexto                                 # 3. entregamos todo
 
 
 # =====================================================================

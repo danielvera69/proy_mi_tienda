@@ -20,9 +20,7 @@ from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", views.home, name="home"),                 # "" = la página principal: http://127.0.0.1:8000/
-    path("saludo/", views.saludo, name="saludo"),      # http://127.0.0.1:8000/saludo/
-    path("info/", views.info_peticion, name="info"),   # http://127.0.0.1:8000/info/
+    path("", views.InicioView.as_view(), name="home"),          # VBC: .as_view() convierte la clase en vista
     # ---------- AUTENTICACIÓN: funciones (VBF) ----------
     path("login/", views.ingresar, name="login"),
     path("logout/", views.salir, name="logout"),
