@@ -9,4 +9,7 @@ class UsuarioRegistroMixin:
 
     def form_valid(self, form):                      # se ejecuta cuando el formulario es válido (POST)
         form.instance.user = self.request.user       # form.instance = el objeto que se va a guardar
-        return super().form_valid(form)              # sigue la cadena: guarda y redirige
+        return super().form_valid(form)     
+        
+
+         # sigue la cadena: guarda y redirige

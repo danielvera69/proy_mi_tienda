@@ -1,6 +1,8 @@
 from django import forms
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet, inlineformset_factory
 
-from .models import Marca, Producto                     # El modelo del que sale el formulario
+from .models import DetalleVenta, Marca, Producto, Venta                     # El modelo del que sale el formulario
 
 
 class MarcaForm(forms.ModelForm):                # ModelForm: formulario construido desde un modelo
@@ -56,3 +58,79 @@ class ProductoForm(forms.ModelForm):
         if precio <= 0:
             raise forms.ValidationError("El precio debe ser mayor que 0.")
         return precio
+
+# =====================================================================
+# VENTA: cabecera (maestro)
+# =====================================================================
+class VentaForm(forms.ModelForm):
+    class Meta:
+        model = Venta
+        fields = ["cliente", "fecha_hora", "tipo_pago"]   # subtotal, iva y total los calcula el sistema
+        widgets = {
+            "cliente": forms.Select(attrs={"class": "form-select"}),
+            # type="datetime-local" → el navegador muestra un calendario con hora
+            "fecha_hora": forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"},
+                                              format="%Y-%m-%dT%H:%M"),
+            "tipo_pago": forms.Select(attrs={"class": "form-select"}),   # las opciones salen de TipoPago
+        }
+
+# =====================================================================
+# VENTA: filas del detalle
+# =====================================================================
+class ProductoConPrecioField(forms.ModelChoiceField):
+    """Lista desplegable de productos que muestra también el precio y el stock."""
+    def label_from_instance(self, obj):           # Django llama a este método para escribir cada <option>
+        return f"{obj.nombre} · ${obj.precio} · stock: {obj.stock}"
+
+
+class DetalleVentaForm(forms.ModelForm):
+    producto = ProductoConPrecioField(
+        queryset=Producto.objects.filter(activo=True),
+        empty_label="— Elige un producto —",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    class Meta:
+        model = DetalleVenta
+        fields = ["producto", "cantidad"]           # el precio NO: lo pone la vista con el precio actual
+        widgets = {"cantidad": forms.NumberInput(attrs={"class": "form-control", "min": "1"})}
+
+class BaseDetalleVentaFormSet(BaseInlineFormSet):
+    """Validación de TODAS las filas juntas: ¿hay stock para lo que se pide?"""
+
+    def clean(self):
+        super().clean()                           # primero las validaciones normales de cada fila
+        if any(self.errors):                      # si alguna fila ya tiene errores, no seguimos
+            return
+
+        pedido = {}                               # {producto: cantidad total pedida}
+        for fila in self.forms:
+            datos = fila.cleaned_data
+            if not datos or datos.get("DELETE"):  # fila vacía o marcada para quitar → se ignora
+                continue
+            producto = datos["producto"]
+            pedido[producto] = pedido.get(producto, 0) + datos["cantidad"]   # suma si el producto se repite
+
+        anterior = {}                             # al EDITAR: lo que esta venta ya tenía reservado
+        if self.instance.pk:
+            for detalle in self.instance.detalles.all():
+                anterior[detalle.producto_id] = anterior.get(detalle.producto_id, 0) + detalle.cantidad
+
+        for producto, cantidad in pedido.items():
+            disponible = producto.stock + anterior.get(producto.pk, 0)
+            if cantidad > disponible:
+                raise ValidationError(
+                    f"Stock insuficiente de «{producto.nombre}»: pides {cantidad} y hay {disponible}."
+                )
+
+# inlineformset_factory crea una CLASE de formset: muchos DetalleVentaForm unidos a UNA Venta
+DetalleVentaFormSet = inlineformset_factory(
+    Venta,                                        # el maestro
+    DetalleVenta,                                 # el detalle (tiene la ForeignKey venta)
+    form=DetalleVentaForm,                        # el formulario de cada fila
+    formset=BaseDetalleVentaFormSet,              # nuestra validación de stock
+    extra=0,                                      # filas vacías extra (las agrega el botón con JavaScript)
+    min_num=1,                                    # mínimo 1 fila...
+    validate_min=True,                            # ...y se valida que exista
+    can_delete=True,                              # cada fila tiene la casilla "Quitar"
+)
